@@ -1,39 +1,77 @@
 import { getProducts } from "../api/productApi.js";
 import { getQueryParams, setQueryParams } from "../utils/urlParams.js";
+import { isTestEnvironment } from "../utils/isTestEnvironment.js";
 
-let products = [];
-let isLoading = true;
-let error = null;
-let totalCount = 0;
-let filters = {
-  page: 1,
-  limit: 20,
-  search: "",
-  category1: "",
-  category2: "",
-  sort: "price_asc",
-  ...getQueryParams(),
+const state = {
+  products: [],
+  isLoading: true,
+  error: null,
+  totalCount: 0,
+  filters: {
+    page: 1,
+    limit: 20,
+    search: "",
+    category1: "",
+    category2: "",
+    sort: "price_asc",
+    ...getQueryParams(),
+  },
 };
 
-// fetchProducts function (now at module level)
 const fetchProducts = async () => {
-  isLoading = true;
-  error = null;
-  render(); // Re-render to show loading state
+  state.isLoading = true;
+  state.error = null;
+
+  if (!isTestEnvironment()) {
+    render();
+  }
+
   try {
-    const data = await getProducts(filters);
-    products = data.products;
-    totalCount = data.pagination.total;
+    const data = await getProducts(state.filters);
+    state.products = data.products;
+    state.totalCount = data.pagination.total;
   } catch (err) {
     console.error("Failed to fetch products:", err);
-    error = err;
+    state.error = err;
   } finally {
-    isLoading = false;
-    render(); // Re-render with data or error
+    state.isLoading = false;
+    render();
   }
 };
 
+const setupEventListeners = () => {
+  const { error, filters } = state;
+
+  if (error) {
+    document.getElementById("retry-button")?.addEventListener("click", fetchProducts);
+  }
+  document.getElementById("limit-select")?.addEventListener("change", (e) => {
+    filters.limit = Number(e.target.value);
+    filters.page = 1;
+    setQueryParams(filters);
+    fetchProducts();
+  });
+
+  document.getElementById("sort-select")?.addEventListener("change", (e) => {
+    filters.sort = e.target.value;
+    filters.page = 1;
+    setQueryParams(filters);
+    fetchProducts();
+  });
+
+  document.getElementById("search-input")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      filters.search = e.target.value;
+      filters.page = 1;
+      setQueryParams(filters);
+      fetchProducts();
+    }
+  });
+};
+
 function render() {
+  const { isLoading, filters, products, error, totalCount } = state;
+
   document.getElementById("root").innerHTML = /* HTML */ `
     <div class="min-h-screen bg-gray-50">
       ${Header()}
@@ -45,41 +83,18 @@ function render() {
     </div>
   `;
 
-  // Event listeners must be re-attached after innerHTML update
-  if (error) {
-    document.getElementById("retry-button")?.addEventListener("click", fetchProducts);
-  }
-  document.getElementById("limit-select")?.addEventListener("change", (e) => {
-    filters.limit = Number(e.target.value);
-    filters.page = 1;
-    setQueryParams(filters);
-    fetchProducts();
-  });
-  document.getElementById("sort-select")?.addEventListener("change", (e) => {
-    filters.sort = e.target.value;
-    filters.page = 1;
-    setQueryParams(filters);
-    fetchProducts();
-  });
-  document.getElementById("search-input")?.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      filters.search = e.target.value;
-      filters.page = 1;
-      setQueryParams(filters);
-      fetchProducts();
-    }
-  });
+  setupEventListeners();
 }
 
 export function ProductListPage() {
+  const { isLoading, filters, products, error, totalCount } = state;
+
   return /* HTML */ `
     <div class="min-h-screen bg-gray-50">
       ${Header()}
       <main class="max-w-md mx-auto px-4 py-4">
-        ${Filters({ isLoading: true, filters })}
-        <div class="mb-6">
-          ${ProductGrid({ isLoading: true, products: [], error: null, totalCount: 0, limit: filters.limit })}
-        </div>
+        ${Filters({ isLoading, filters })}
+        <div class="mb-6">${ProductGrid({ isLoading, products, error, totalCount, limit: filters.limit })}</div>
       </main>
       ${Footer()}
     </div>

@@ -1,5 +1,6 @@
 import { Router } from "./router/index.js";
 import { routes } from "./router/routes.js";
+import { isTestEnvironment } from "./utils/isTestEnvironment.js";
 
 const enableMocking = () =>
   import("./mocks/browser.js").then(({ worker }) =>
@@ -1454,36 +1455,10 @@ function main() {
   //     </div>
   //   </main>
   // `;
-
-  /*
-  document.body.innerHTML = `
-    ${상품목록_레이아웃_로딩}
-    <br />
-    ${상품목록_레이아웃_로딩완료}
-    <br />
-    ${상품목록_레이아웃_카테고리_1Depth}
-    <br />
-    ${상품목록_레이아웃_카테고리_2Depth}
-    <br />
-    ${토스트}
-    <br />
-    ${장바구니_비어있음}
-    <br />
-    ${장바구니_선택없음}
-    <br />
-    ${장바구니_선택있음}
-    <br />
-    ${상세페이지_로딩}
-    <br />
-    ${상세페이지_로딩완료}
-    <br />
-    ${_404_}
-  `;
-  */
 }
 
 // 애플리케이션 시작
-if (import.meta.env.MODE !== "test") {
+if (!isTestEnvironment()) {
   enableMocking().then(main);
 } else {
   main();
