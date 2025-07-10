@@ -1,9 +1,11 @@
-import { getProducts } from "../api/productApi.js";
 import { createInfiniteScrollObserver } from "../utils/createInfiniteScrollObserver.js";
 import { getQueryParams, setQueryParams } from "../utils/urlParams.js";
 import { isTestEnvironment } from "../utils/isTestEnvironment.js";
+import { getProducts } from "../api/productApi.js";
 
-const state = {
+let infiniteScrollObserverInstance = null;
+
+const productState = {
   products: [],
   isLoading: true,
   error: null,
@@ -17,17 +19,183 @@ const state = {
     sort: "price_asc",
     ...getQueryParams(),
   },
+
+  fetchProducts: async (append = false) => {
+    productState.isLoading = true;
+    productState.error = null;
+
+    if (!isTestEnvironment()) {
+      render();
+    }
+
+    try {
+      const data = await getProducts(productState.filters);
+      productState.products = append ? [...productState.products, ...data.products] : data.products;
+      productState.totalCount = data.pagination.total;
+    } catch (err) {
+      console.error("Failed to fetch products:", err);
+      productState.error = err;
+    } finally {
+      productState.isLoading = false;
+      render();
+    }
+  },
+
+  updateFetchProducts: () => {
+    productState.filters.page = productState.filters.page + 1;
+    productState.fetchProducts(true);
+    setQueryParams(productState.filters);
+  },
 };
 
-let infiniteScrollObserverInstance = null;
+// 장바구니 상태 관리
+const cartState = {
+  items: [],
+  getCartCount() {
+    return this.items.reduce((total, item) => total + item.quantity, 0);
+  },
+  addToCart(product) {
+    const existingItem = this.items.find((item) => item.productId === product.productId);
+    if (existingItem) {
+      existingItem.quantity += 1;
+    } else {
+      this.items.push({ ...product, quantity: 1 });
+    }
+    this.saveToSessionStorage();
+    this.updateCartBadge();
+    showToast("장바구니에 추가되었습니다", "success");
+  },
+  removeFromCart(productId) {
+    const item = this.items.find((item) => item.productId === productId);
+    this.items = this.items.filter((item) => item.productId !== productId);
+    this.saveToSessionStorage();
+    this.updateCartBadge();
+    if (item) {
+      showToast(`${item.title}이(가) 장바구니에서 삭제되었습니다`, "info");
+    }
+  },
+  removeSelectedItems(selectedProductIds) {
+    const removedItems = this.items.filter((item) => selectedProductIds.includes(item.productId));
+    this.items = this.items.filter((item) => !selectedProductIds.includes(item.productId));
+    this.saveToSessionStorage();
+    this.updateCartBadge();
+    if (removedItems.length > 0) {
+      showToast(`선택한 ${removedItems.length}개 상품이 삭제되었습니다`, "info");
+    }
+  },
+  clearCart() {
+    const itemCount = this.items.length;
+    this.items = [];
+    this.saveToSessionStorage();
+    this.updateCartBadge();
+    if (itemCount > 0) {
+      showToast("장바구니가 비워졌습니다", "info");
+    }
+  },
+  updateQuantity(productId, quantity) {
+    const item = this.items.find((item) => item.productId === productId);
+    if (item) {
+      if (quantity <= 0) {
+        this.removeFromCart(productId);
+      } else {
+        item.quantity = quantity;
+        this.saveToSessionStorage();
+        this.updateCartBadge();
+      }
+    }
+  },
+  saveToSessionStorage() {
+    sessionStorage.setItem("cart", JSON.stringify(this.items));
+  },
+  loadFromSessionStorage() {
+    const savedCart = sessionStorage.getItem("cart");
+    if (savedCart) {
+      this.items = JSON.parse(savedCart);
+    }
+  },
+  updateCartBadge() {
+    const cartIcon = document.querySelector("#cart-icon-btn");
+    if (cartIcon) {
+      const count = this.getCartCount();
+      let badge = cartIcon.querySelector(".cart-badge");
+
+      if (count > 0) {
+        if (!badge) {
+          badge = document.createElement("span");
+          badge.className =
+            "cart-badge absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center";
+          cartIcon.appendChild(badge);
+        }
+        badge.textContent = count;
+      } else if (badge) {
+        badge.remove();
+      }
+    }
+  },
+};
+
+// 토스트 메시지 함수
+function showToast(message, type = "success") {
+  // 기존 토스트 제거
+  const existingToast = document.querySelector(".toast-message");
+  if (existingToast) {
+    existingToast.remove();
+  }
+
+  // 타입별 스타일 설정
+  const typeStyles = {
+    success: "bg-green-500 text-white",
+    info: "bg-blue-500 text-white",
+    error: "bg-red-500 text-white",
+  };
+
+  // 새 토스트 생성
+  const toast = document.createElement("div");
+  //하단 가운데
+  toast.className = `toast-message fixed bottom-4 left-1/2 transform -translate-x-1/2 ${typeStyles[type]} px-4 py-3 rounded-lg shadow-lg z-50 flex items-center justify-between min-w-64`;
+
+  // 메시지 텍스트
+  const messageText = document.createElement("span");
+  messageText.textContent = message;
+  toast.appendChild(messageText);
+
+  // 닫기 버튼
+  const closeButton = document.createElement("button");
+  closeButton.className = "ml-3 text-white hover:text-gray-200 focus:outline-none";
+  closeButton.innerHTML = `
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+    </svg>
+  `;
+  closeButton.addEventListener("click", () => {
+    if (toast.parentNode) {
+      toast.remove();
+    }
+  });
+  toast.appendChild(closeButton);
+
+  document.body.appendChild(toast);
+
+  // 3초 후 자동 제거
+  const autoRemoveTimer = setTimeout(() => {
+    if (toast.parentNode) {
+      toast.remove();
+    }
+  }, 3000);
+
+  // 닫기 버튼 클릭 시 타이머 취소
+  closeButton.addEventListener("click", () => {
+    clearTimeout(autoRemoveTimer);
+  });
+}
 
 // 테스트 환경에서 상태를 초기화하는 함수
 export function resetState() {
-  state.products = [];
-  state.isLoading = true;
-  state.error = null;
-  state.totalCount = 0;
-  state.filters = {
+  productState.products = [];
+  productState.isLoading = true;
+  productState.error = null;
+  productState.totalCount = 0;
+  productState.filters = {
     page: 1,
     limit: 20,
     search: "",
@@ -36,6 +204,10 @@ export function resetState() {
     sort: "price_asc",
     ...getQueryParams(),
   };
+
+  cartState.items = [];
+  cartState.saveToSessionStorage();
+  cartState.updateCartBadge();
 
   if (infiniteScrollObserverInstance) {
     infiniteScrollObserverInstance.destroy();
@@ -46,49 +218,24 @@ export function resetState() {
 // 테스트 환경에서 전역 함수로 노출
 if (isTestEnvironment()) {
   window.__TEST_STATE_RESET__ = resetState;
+  window.__TEST_CART_STATE__ = cartState;
+  window.__TEST_SHOW_TOAST__ = showToast;
 }
-
-const fetchProducts = async (append = false) => {
-  state.isLoading = true;
-  state.error = null;
-
-  if (!isTestEnvironment()) {
-    render();
-  }
-
-  try {
-    const data = await getProducts(state.filters);
-    state.products = append ? [...state.products, ...data.products] : data.products;
-    state.totalCount = data.pagination.total;
-  } catch (err) {
-    console.error("Failed to fetch products:", err);
-    state.error = err;
-  } finally {
-    state.isLoading = false;
-    render();
-  }
-};
 
 const setupInfiniteScrollObserver = () => {
   // 이미 인스턴스가 존재하면 다시 생성하지 않음 (단 한 번만 초기화)
   if (!infiniteScrollObserverInstance) {
-    infiniteScrollObserverInstance = createInfiniteScrollObserver(updateFetchProducts, {
-      getIsLoading: () => state.isLoading, // 현재 로딩 중인지 여부 전달
-      hasMore: () => state.products.length < state.totalCount, // 더 불러올 데이터가 있는지 여부 전달
+    infiniteScrollObserverInstance = createInfiniteScrollObserver(productState.updateFetchProducts, {
+      getIsLoading: () => productState.isLoading,
+      hasMore: () => productState.products.length < productState.totalCount,
     });
   }
   // init 호출: 초기 또는 DOM 변경 시 트리거 요소 관찰 시작
   infiniteScrollObserverInstance.init();
 };
 
-const updateFetchProducts = () => {
-  state.filters.page = state.filters.page + 1;
-  setQueryParams(state.filters);
-  fetchProducts(true);
-};
-
 const setupEventListeners = () => {
-  const { error, filters } = state;
+  const { error, filters, fetchProducts } = productState;
 
   if (error) {
     document.querySelector("#retry-button")?.addEventListener("click", fetchProducts);
@@ -127,10 +274,28 @@ const setupEventListeners = () => {
     setQueryParams(filters);
     fetchProducts();
   });
+
+  // 장바구니 버튼 클릭 이벤트
+  document.querySelectorAll(".add-to-cart-btn").forEach((button) => {
+    button.addEventListener("click", (e) => {
+      e.preventDefault();
+      const productId = button.getAttribute("data-product-id");
+      const productCard = button.closest(".product-card");
+      const product = {
+        productId,
+        title: productCard.querySelector("h3").textContent,
+        brand: productCard.querySelector("p").textContent,
+        image: productCard.querySelector("img").src,
+        lprice: parseInt(productCard.querySelector(".text-lg").textContent.replace(/[^0-9]/g, "")),
+      };
+
+      cartState.addToCart(product);
+    });
+  });
 };
 
 export function ProductListPage() {
-  const { isLoading, filters, products, error, totalCount } = state;
+  const { isLoading, filters, products, error, totalCount } = productState;
 
   return /* HTML */ `
     <div class="min-h-screen bg-gray-50">
@@ -147,9 +312,12 @@ export function ProductListPage() {
 }
 
 export function initializeProductListPage() {
+  cartState.loadFromSessionStorage();
+
   render();
-  fetchProducts();
   setupInfiniteScrollObserver();
+  productState.fetchProducts();
+  cartState.updateCartBadge();
 }
 
 function Header() {
