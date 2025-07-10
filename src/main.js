@@ -9,9 +9,9 @@ const enableMocking = () =>
     }),
   );
 
-function main() {
-  const router = Router();
+export const router = Router();
 
+function main() {
   routes.forEach((route) => {
     router.registerRoute(route.path, route.component, route.initializer);
   });

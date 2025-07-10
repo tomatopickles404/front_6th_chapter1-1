@@ -66,7 +66,10 @@ export function ProductGrid({ isLoading, products, totalCount, limit, error }) {
               data-product-id="${productId}"
             >
               <!-- 상품 이미지 -->
-              <div class="aspect-square bg-gray-100 overflow-hidden cursor-pointer product-image">
+              <div
+                class="aspect-square bg-gray-100 overflow-hidden cursor-pointer product-image"
+                data-product-id="${productId}"
+              >
                 <img
                   src="${image}"
                   alt="${title}"
@@ -76,7 +79,7 @@ export function ProductGrid({ isLoading, products, totalCount, limit, error }) {
               </div>
               <!-- 상품 정보 -->
               <div class="p-3">
-                <div class="cursor-pointer product-info mb-3">
+                <div class="cursor-pointer product-info mb-3" data-product-id="${productId}">
                   <h3 class="text-sm font-medium text-gray-900 line-clamp-2 mb-1">${title}</h3>
                   <p class="text-xs text-gray-500 mb-2">${brand}</p>
                   <p class="text-lg font-bold text-gray-900">${lprice?.toLocaleString()}원</p>

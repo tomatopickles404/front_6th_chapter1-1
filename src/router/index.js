@@ -15,14 +15,55 @@ export function Router() {
     router();
   };
 
+  // 동적 경로 매칭 함수
+  const matchRoute = (path) => {
+    // 정확한 매칭 먼저 시도
+    if (routes[path]) {
+      return { route: routes[path], params: {} };
+    }
+
+    // 동적 경로 매칭 시도
+    for (const routePath in routes) {
+      if (routePath.includes(":")) {
+        const pattern = routePath.replace(/:[^/]+/g, "([^/]+)");
+        const regex = new RegExp(`^${pattern}$`);
+        const match = path.match(regex);
+
+        if (match) {
+          const params = {};
+          const paramNames = routePath.match(/:[^/]+/g) || [];
+          paramNames.forEach((paramName, index) => {
+            const key = paramName.slice(1); // ':' 제거
+            params[key] = match[index + 1];
+          });
+
+          return { route: routes[routePath], params };
+        }
+      }
+    }
+
+    return null;
+  };
+
   const router = () => {
     const path = window.location.pathname;
-    const route = routes[path] || { component: notFoundComponent, initializer: null };
-    if (route.component) {
+    const match = matchRoute(path);
+
+    if (match) {
+      const { route, params } = match;
+
+      // 전역 파라미터 설정 (컴포넌트에서 사용할 수 있도록)
+      window.routeParams = params;
+
       document.getElementById("root").innerHTML = route.component();
 
       if (route.initializer) {
         route.initializer();
+      }
+    } else {
+      // 404 처리
+      if (notFoundComponent) {
+        document.getElementById("root").innerHTML = notFoundComponent();
       }
     }
   };

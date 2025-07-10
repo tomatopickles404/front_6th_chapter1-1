@@ -12,9 +12,9 @@ export const cartStore = {
   addToCart(product) {
     const existingItem = this.state.items.find((item) => item.productId === product.productId);
     if (existingItem) {
-      existingItem.quantity += 1;
+      existingItem.quantity += product.quantity || 1;
     } else {
-      this.state.items.push({ ...product, quantity: 1 });
+      this.state.items.push({ ...product, quantity: product.quantity || 1 });
     }
     this.saveToSessionStorage();
     this.updateCartBadge();

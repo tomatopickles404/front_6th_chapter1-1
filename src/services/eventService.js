@@ -1,5 +1,6 @@
 import { productStore } from "../stores/productStore.js";
 import { cartStore } from "../stores/cartStore.js";
+import { router } from "../main.js";
 
 export const eventService = {
   setupGlobalEventDelegation() {
@@ -76,5 +77,10 @@ export const eventService = {
     if (e.key === "Escape") {
       // modalService.close() - 미래에 구현
     }
+  },
+
+  handleProductImageClick(e) {
+    const productId = e.target.dataset.productId;
+    router.navigateTo(`/product/${productId}`);
   },
 };

@@ -2,7 +2,6 @@ import { getByRole, screen, waitFor } from "@testing-library/dom";
 import { afterEach, beforeAll, beforeEach, describe, expect, test } from "vitest";
 import { server } from "./mockServerHandler.js";
 import { userEvent } from "@testing-library/user-event";
-import "intersection-observer";
 
 const goTo = (path) => {
   window.history.pushState({}, "", path);

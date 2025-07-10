@@ -1,4 +1,5 @@
 import { createInfiniteScrollObserver } from "../utils/createInfiniteScrollObserver.js";
+import { setupHeaderEventListeners } from "../components/Header.js";
 import { isTestEnvironment } from "../utils/isTestEnvironment.js";
 import { productStore } from "../stores/productStore.js";
 import { cartStore } from "../stores/cartStore.js";
@@ -80,6 +81,9 @@ function setupEventListeners() {
     document.querySelector("#retry-button")?.addEventListener("click", () => productStore.fetchProducts());
   }
 
+  // Header 이벤트 리스너 설정
+  setupHeaderEventListeners();
+
   const searchInput = document.querySelector("#search-input");
   const performSearch = () => {
     filters.page = 1;
@@ -120,6 +124,17 @@ function setupEventListeners() {
         lprice: parseInt(productCard.querySelector(".text-lg").textContent.replace(/[^0-9]/g, "")),
       };
       cartStore.addToCart(product);
+    });
+  });
+
+  // 상품 클릭 이벤트 (이미지, 정보 영역)
+  document.querySelectorAll(".product-image, .product-info").forEach((element) => {
+    element.addEventListener("click", (e) => {
+      e.preventDefault();
+      const productId = element.dataset.productId;
+      // SPA 방식으로 상세 페이지로 이동
+      window.history.pushState({}, "", `/product/${productId}`);
+      window.dispatchEvent(new Event("popstate"));
     });
   });
 }

@@ -24,3 +24,12 @@ export function Header() {
     </header>
   `;
 }
+
+export function setupHeaderEventListeners() {
+  // 장바구니 아이콘 클릭 이벤트
+  document.querySelector("#cart-icon-btn")?.addEventListener("click", () => {
+    import("./CartModal.js").then(({ openCartModal }) => {
+      openCartModal();
+    });
+  });
+}
