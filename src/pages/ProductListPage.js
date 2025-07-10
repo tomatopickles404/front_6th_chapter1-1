@@ -1,4 +1,5 @@
 import { getProducts } from "../api/productApi.js";
+import { createInfiniteScrollObserver } from "../utils/createInfiniteScrollObserver.js";
 import { getQueryParams, setQueryParams } from "../utils/urlParams.js";
 import { isTestEnvironment } from "../utils/isTestEnvironment.js";
 
@@ -18,7 +19,36 @@ const state = {
   },
 };
 
-const fetchProducts = async () => {
+let infiniteScrollObserverInstance = null;
+
+// 테스트 환경에서 상태를 초기화하는 함수
+export function resetState() {
+  state.products = [];
+  state.isLoading = true;
+  state.error = null;
+  state.totalCount = 0;
+  state.filters = {
+    page: 1,
+    limit: 20,
+    search: "",
+    category1: "",
+    category2: "",
+    sort: "price_asc",
+    ...getQueryParams(),
+  };
+
+  if (infiniteScrollObserverInstance) {
+    infiniteScrollObserverInstance.destroy();
+    infiniteScrollObserverInstance = null;
+  }
+}
+
+// 테스트 환경에서 전역 함수로 노출
+if (isTestEnvironment()) {
+  window.__TEST_STATE_RESET__ = resetState;
+}
+
+const fetchProducts = async (append = false) => {
   state.isLoading = true;
   state.error = null;
 
@@ -28,7 +58,7 @@ const fetchProducts = async () => {
 
   try {
     const data = await getProducts(state.filters);
-    state.products = data.products;
+    state.products = append ? [...state.products, ...data.products] : data.products;
     state.totalCount = data.pagination.total;
   } catch (err) {
     console.error("Failed to fetch products:", err);
@@ -39,52 +69,65 @@ const fetchProducts = async () => {
   }
 };
 
+const setupInfiniteScrollObserver = () => {
+  // 이미 인스턴스가 존재하면 다시 생성하지 않음 (단 한 번만 초기화)
+  if (!infiniteScrollObserverInstance) {
+    infiniteScrollObserverInstance = createInfiniteScrollObserver(updateFetchProducts, {
+      getIsLoading: () => state.isLoading, // 현재 로딩 중인지 여부 전달
+      hasMore: () => state.products.length < state.totalCount, // 더 불러올 데이터가 있는지 여부 전달
+    });
+  }
+  // init 호출: 초기 또는 DOM 변경 시 트리거 요소 관찰 시작
+  infiniteScrollObserverInstance.init();
+};
+
+const updateFetchProducts = () => {
+  state.filters.page = state.filters.page + 1;
+  setQueryParams(state.filters);
+  fetchProducts(true);
+};
+
 const setupEventListeners = () => {
   const { error, filters } = state;
 
   if (error) {
-    document.getElementById("retry-button")?.addEventListener("click", fetchProducts);
+    document.querySelector("#retry-button")?.addEventListener("click", fetchProducts);
   }
-  document.getElementById("limit-select")?.addEventListener("change", (e) => {
+
+  const searchInput = document.querySelector("#search-input");
+  const performSearch = () => {
+    filters.page = 1;
+    setQueryParams(filters);
+    fetchProducts();
+  };
+
+  if (searchInput) {
+    searchInput.addEventListener("input", (e) => {
+      filters.search = e.target.value.trim();
+    });
+
+    searchInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        performSearch();
+      }
+    });
+  }
+
+  document.querySelector("#limit-select")?.addEventListener("change", (e) => {
     filters.limit = Number(e.target.value);
     filters.page = 1;
     setQueryParams(filters);
     fetchProducts();
   });
 
-  document.getElementById("sort-select")?.addEventListener("change", (e) => {
+  document.querySelector("#sort-select")?.addEventListener("change", (e) => {
     filters.sort = e.target.value;
     filters.page = 1;
     setQueryParams(filters);
     fetchProducts();
   });
-
-  document.getElementById("search-input")?.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      filters.search = e.target.value;
-      filters.page = 1;
-      setQueryParams(filters);
-      fetchProducts();
-    }
-  });
 };
-
-function render() {
-  const { isLoading, filters, products, error, totalCount } = state;
-
-  document.getElementById("root").innerHTML = /* HTML */ `
-    <div class="min-h-screen bg-gray-50">
-      ${Header()}
-      <main class="max-w-md mx-auto px-4 py-4">
-        ${Filters({ isLoading, filters })}
-        <div class="mb-6">${ProductGrid({ products, isLoading, error, totalCount, limit: filters.limit })}</div>
-      </main>
-      ${Footer()}
-    </div>
-  `;
-
-  setupEventListeners();
-}
 
 export function ProductListPage() {
   const { isLoading, filters, products, error, totalCount } = state;
@@ -96,6 +139,8 @@ export function ProductListPage() {
         ${Filters({ isLoading, filters })}
         <div class="mb-6">${ProductGrid({ isLoading, products, error, totalCount, limit: filters.limit })}</div>
       </main>
+      <!-- 무한 스크롤 트리거 -->
+      <div class="infinite-scroll-trigger"></div>
       ${Footer()}
     </div>
   `;
@@ -104,6 +149,7 @@ export function ProductListPage() {
 export function initializeProductListPage() {
   render();
   fetchProducts();
+  setupInfiniteScrollObserver();
 }
 
 function Header() {
@@ -154,6 +200,7 @@ function ProductGrid({ isLoading, products, totalCount, limit, error }) {
           )
           .join("")}
       </div>
+
       <div class="text-center py-4">
         <div class="inline-flex items-center">
           <svg class="animate-spin h-5 w-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -238,24 +285,27 @@ function Filters({ isLoading, filters }) {
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
       <!-- 검색창 -->
       <div class="mb-4">
-        <div class="relative">
-          <input
-            type="text"
-            id="search-input"
-            placeholder="상품명을 검색해보세요..."
-            value="${search}"
-            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg
-                        focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
-          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              ></path>
-            </svg>
+        <div class="flex gap-2">
+          <div class="relative flex-1">
+            <input
+              type="text"
+              id="search-input"
+              placeholder="상품명을 검색해보세요..."
+              value="${search}"
+              class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg
+                          focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+            <!-- 검색 아이콘 -->
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                ></path>
+              </svg>
+            </div>
           </div>
         </div>
       </div>
@@ -334,4 +384,10 @@ function Footer() {
       </div>
     </footer>
   `;
+}
+
+function render() {
+  document.getElementById("root").innerHTML = ProductListPage();
+  setupEventListeners();
+  setupInfiniteScrollObserver();
 }
