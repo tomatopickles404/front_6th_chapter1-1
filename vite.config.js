@@ -12,7 +12,7 @@ export default defineConfig({
       },
     },
   },
-  // base: process.env.NODE_ENV === "production" ? "/front-6th-chapter1-1/" : "/",
+  base: process.env.NODE_ENV === "production" ? "/front-6th-chapter1-1/" : "/",
   build: {
     outDir: "dist",
     rollupOptions: {
