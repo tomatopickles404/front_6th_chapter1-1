@@ -173,8 +173,14 @@ function setupEventListeners() {
     element.addEventListener("click", (e) => {
       e.preventDefault();
       const productId = element.dataset.productId;
+
+      // 현재 정렬 상태를 URL에 포함
+      const currentParams = new URLSearchParams(window.location.search);
+      const sort = currentParams.get("sort");
+      const queryString = sort ? `?sort=${sort}` : "";
+
       // SPA 방식으로 상세 페이지로 이동
-      window.history.pushState({}, "", `/product/${productId}`);
+      window.history.pushState({}, "", `/product/${productId}${queryString}`);
       window.dispatchEvent(new Event("popstate"));
     });
   });
