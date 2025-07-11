@@ -65,11 +65,11 @@ export const cartStore = {
   },
 
   saveToLocalStorage() {
-    localStorage.setItem("shopping-cart", JSON.stringify(this.state.items));
+    localStorage.setItem("shopping_cart", JSON.stringify(this.state.items));
   },
 
   loadFromLocalStorage() {
-    const savedCart = localStorage.getItem("shopping-cart");
+    const savedCart = localStorage.getItem("shopping_cart");
     if (savedCart) {
       this.state.items = JSON.parse(savedCart);
     }
@@ -104,7 +104,7 @@ export const cartStore = {
   // 테스트를 위한 완전한 상태 초기화
   clearAll() {
     this.state.items = [];
-    localStorage.removeItem("shopping-cart");
+    localStorage.removeItem("shopping_cart");
     this.updateCartBadge();
   },
 };

@@ -1,6 +1,6 @@
 import { cartStore } from "../stores/cartStore.js";
 import { Footer } from "../components/Footer.js";
-import { ProductDetailHeader } from "../components/ProductDetailHeader.js";
+import { ProductDetailHeader, setupProductDetailHeaderEventListeners } from "../components/ProductDetailHeader.js";
 import { ProductDetailBreadcrumb } from "../components/ProductDetailBreadcrumb.js";
 import { ProductDetailInfo } from "../components/ProductDetailInfo.js";
 import { ProductQuantitySelector } from "../components/ProductQuantitySelector.js";
@@ -78,6 +78,9 @@ export function initializeProductDetailPage() {
 }
 
 function setupEventListeners() {
+  // ProductDetailHeader 이벤트 리스너 설정
+  setupProductDetailHeaderEventListeners();
+
   // 기존 이벤트 리스너 제거 (중복 방지)
   const existingListener = document._productDetailListener;
   if (existingListener) {

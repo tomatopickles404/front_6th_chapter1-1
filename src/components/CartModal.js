@@ -179,7 +179,8 @@ export function setupCartModalEventListeners() {
       const item = cartStore.state.items.find((item) => item.productId === productId);
       if (item) {
         cartStore.updateQuantity(productId, item.quantity + 1);
-        renderCartModal();
+        // 모달 다시 렌더링하여 최신 상태 반영
+        setTimeout(() => renderCartModal(), 0);
       }
     });
   });
@@ -191,7 +192,8 @@ export function setupCartModalEventListeners() {
       const item = cartStore.state.items.find((item) => item.productId === productId);
       if (item && item.quantity > 1) {
         cartStore.updateQuantity(productId, item.quantity - 1);
-        renderCartModal();
+        // 모달 다시 렌더링하여 최신 상태 반영
+        setTimeout(() => renderCartModal(), 0);
       }
     });
   });
@@ -202,7 +204,8 @@ export function setupCartModalEventListeners() {
       const productId = e.target.dataset.productId;
       const quantity = parseInt(e.target.value) || 1;
       cartStore.updateQuantity(productId, quantity);
-      renderCartModal();
+      // 모달 다시 렌더링하여 최신 상태 반영
+      setTimeout(() => renderCartModal(), 0);
     });
   });
 
@@ -211,7 +214,8 @@ export function setupCartModalEventListeners() {
     btn.addEventListener("click", () => {
       const productId = btn.dataset.productId;
       cartStore.removeFromCart(productId);
-      renderCartModal();
+      // 모달 다시 렌더링하여 최신 상태 반영
+      setTimeout(() => renderCartModal(), 0);
     });
   });
 
@@ -226,7 +230,8 @@ export function setupCartModalEventListeners() {
 
     if (selectedProductIds.length > 0) {
       cartStore.removeSelectedItems(selectedProductIds);
-      renderCartModal();
+      // 모달 다시 렌더링하여 최신 상태 반영
+      setTimeout(() => renderCartModal(), 0);
     }
   });
 
@@ -256,7 +261,6 @@ export function openCartModal() {
   document.body.appendChild(modalContainer);
 
   renderCartModal();
-  setupCartModalEventListeners();
 }
 
 export function closeCartModal() {
