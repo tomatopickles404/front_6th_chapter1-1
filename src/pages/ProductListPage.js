@@ -63,7 +63,7 @@ export function ProductListPage() {
 
 export function initializeProductListPage() {
   // 세션스토리지에서 장바구니 데이터 로드
-  cartStore.loadFromSessionStorage();
+  cartStore.loadFromLocalStorage();
 
   // URL 파라미터에서 초기 상태 복원
   productStore.initializeFromURL();

@@ -16,7 +16,7 @@ export const cartStore = {
     } else {
       this.state.items.push({ ...product, quantity: product.quantity || 1 });
     }
-    this.saveToSessionStorage();
+    this.saveToLocalStorage();
     this.updateCartBadge();
     toastService.show("장바구니에 추가되었습니다", "success");
   },
@@ -24,7 +24,7 @@ export const cartStore = {
   removeFromCart(productId) {
     const item = this.state.items.find((item) => item.productId === productId);
     this.state.items = this.state.items.filter((item) => item.productId !== productId);
-    this.saveToSessionStorage();
+    this.saveToLocalStorage();
     this.updateCartBadge();
     if (item) {
       toastService.show(`${item.title}이(가) 장바구니에서 삭제되었습니다`, "info");
@@ -34,7 +34,7 @@ export const cartStore = {
   removeSelectedItems(selectedProductIds) {
     const removedItems = this.state.items.filter((item) => selectedProductIds.includes(item.productId));
     this.state.items = this.state.items.filter((item) => !selectedProductIds.includes(item.productId));
-    this.saveToSessionStorage();
+    this.saveToLocalStorage();
     this.updateCartBadge();
     if (removedItems.length > 0) {
       toastService.show(`선택한 ${removedItems.length}개 상품이 삭제되었습니다`, "info");
@@ -44,7 +44,7 @@ export const cartStore = {
   clearCart() {
     const itemCount = this.state.items.length;
     this.state.items = [];
-    this.saveToSessionStorage();
+    this.saveToLocalStorage();
     this.updateCartBadge();
     if (itemCount > 0) {
       toastService.show("장바구니가 비워졌습니다", "info");
@@ -58,18 +58,18 @@ export const cartStore = {
         this.removeFromCart(productId);
       } else {
         item.quantity = quantity;
-        this.saveToSessionStorage();
+        this.saveToLocalStorage();
         this.updateCartBadge();
       }
     }
   },
 
-  saveToSessionStorage() {
-    sessionStorage.setItem("cart", JSON.stringify(this.state.items));
+  saveToLocalStorage() {
+    localStorage.setItem("shopping-cart", JSON.stringify(this.state.items));
   },
 
-  loadFromSessionStorage() {
-    const savedCart = sessionStorage.getItem("cart");
+  loadFromLocalStorage() {
+    const savedCart = localStorage.getItem("shopping-cart");
     if (savedCart) {
       this.state.items = JSON.parse(savedCart);
     }
@@ -97,7 +97,14 @@ export const cartStore = {
 
   reset() {
     this.state.items = [];
-    this.saveToSessionStorage();
+    this.saveToLocalStorage();
+    this.updateCartBadge();
+  },
+
+  // 테스트를 위한 완전한 상태 초기화
+  clearAll() {
+    this.state.items = [];
+    localStorage.removeItem("shopping-cart");
     this.updateCartBadge();
   },
 };
