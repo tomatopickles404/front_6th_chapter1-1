@@ -4,11 +4,7 @@ import { isTestEnvironment } from "./utils/isTestEnvironment.js";
 import { NotFoundPage } from "./pages/NotFoundPage.js";
 
 const enableMocking = () =>
-  import("./mocks/browser.js").then(({ worker }) =>
-    worker.start({
-      onUnhandledRequest: "bypass",
-    }),
-  );
+  import("./mocks/browser.js").then(({ worker, workerOptions }) => worker.start(workerOptions));
 
 export const router = Router();
 
