@@ -17,7 +17,7 @@ export default defineConfig({
     outDir: "dist",
     rollupOptions: {
       input: {
-        404: "404.html",
+        index: "index.html",
       },
     },
   },
