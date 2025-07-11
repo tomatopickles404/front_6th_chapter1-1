@@ -6,7 +6,7 @@ export const cartStore = {
   },
 
   getCartCount() {
-    return this.state.items.reduce((total, item) => total + item.quantity, 0);
+    return this.state.items.length;
   },
 
   addToCart(product) {
