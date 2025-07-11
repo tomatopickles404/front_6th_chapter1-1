@@ -2,7 +2,7 @@ import { setupWorker } from "msw/browser";
 import { handlers } from "./handlers";
 
 // MSW 워커 설정
-const basePath = import.meta.env.PROD ? "/front_6th_chapter1-1" : "";
+const basePath = process.env.NODE_ENV === "production" ? "/front_6th_chapter1-1" : "";
 
 export const worker = setupWorker(...handlers);
 

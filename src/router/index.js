@@ -1,3 +1,5 @@
+import { getAppPath, getFullPath } from "../utils/path.js";
+
 export function Router() {
   const routes = {};
   let notFoundComponent = "";
@@ -11,7 +13,7 @@ export function Router() {
   };
 
   const navigateTo = (path) => {
-    window.history.pushState(null, null, path);
+    window.history.pushState(null, null, getFullPath(path));
     router();
   };
 
@@ -46,7 +48,7 @@ export function Router() {
   };
 
   const router = () => {
-    const path = window.location.pathname;
+    const path = getAppPath(window.location.pathname);
     const match = matchRoute(path);
 
     if (match) {

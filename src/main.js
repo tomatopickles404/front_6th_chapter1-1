@@ -1,7 +1,6 @@
 import { Router } from "./router/index.js";
 import { routes } from "./router/routes.js";
 import { isTestEnvironment } from "./utils/isTestEnvironment.js";
-import { NotFoundPage } from "./pages/NotFoundPage.js";
 
 const enableMocking = () =>
   import("./mocks/browser.js").then(({ worker, workerOptions }) => worker.start(workerOptions));
@@ -12,9 +11,6 @@ function main() {
   routes.forEach((route) => {
     router.registerRoute(route.path, route.component, route.initializer);
   });
-
-  // 404 페이지 설정
-  router.setNotFoundComponent(NotFoundPage);
 
   router.router();
 }
