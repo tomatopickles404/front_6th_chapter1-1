@@ -1,5 +1,5 @@
 export function Filters({ isLoading, filters }) {
-  const { search, limit, sort } = filters;
+  const { search, limit, sort, category1, category2 } = filters;
   return /* HTML */ `
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
       <!-- 검색창 -->
@@ -35,6 +35,12 @@ export function Filters({ isLoading, filters }) {
           <div class="flex items-center gap-2">
             <label class="text-sm text-gray-600">카테고리:</label>
             <button data-breadcrumb="reset" class="text-xs hover:text-blue-800 hover:underline">전체</button>
+            ${category1
+              ? `<button data-breadcrumb="category1" class="text-xs hover:text-blue-800 hover:underline">${category1}</button>`
+              : ""}
+            ${category2
+              ? `<button data-breadcrumb="category2" class="text-xs hover:text-blue-800 hover:underline">${category2}</button>`
+              : ""}
           </div>
           <!-- 1depth 카테고리 -->
           <div class="flex flex-wrap gap-2">
@@ -60,6 +66,18 @@ export function Filters({ isLoading, filters }) {
           </div>
 
           <!-- 2depth 카테고리 -->
+          ${category1 === "생활/건강"
+            ? /* HTML */ `
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    data-category2="자동차용품"
+                    class="category2-filter-btn text-left px-3 py-2 text-sm rounded-md border transition-colors bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                  >
+                    자동차용품
+                  </button>
+                </div>
+              `
+            : ""}
         </div>
         <!-- 기존 필터들 -->
         <div class="flex gap-2 items-center justify-between">

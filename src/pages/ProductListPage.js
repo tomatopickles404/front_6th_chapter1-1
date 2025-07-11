@@ -65,6 +65,9 @@ export function initializeProductListPage() {
   // 세션스토리지에서 장바구니 데이터 로드
   cartStore.loadFromSessionStorage();
 
+  // URL 파라미터에서 초기 상태 복원
+  productStore.initializeFromURL();
+
   // 렌더링 콜백 설정
   productStore.render = render;
 
@@ -110,6 +113,43 @@ function setupEventListeners() {
     productStore.updateFilters({ sort: e.target.value });
   });
 
+  // 카테고리 필터 버튼 클릭 이벤트
+  document.querySelectorAll(".category1-filter-btn").forEach((button) => {
+    button.addEventListener("click", (e) => {
+      e.preventDefault();
+      const category1 = button.getAttribute("data-category1");
+      productStore.updateFilters({ category1, category2: "" });
+    });
+  });
+
+  // 2차 카테고리 필터 버튼 클릭 이벤트
+  document.querySelectorAll(".category2-filter-btn").forEach((button) => {
+    button.addEventListener("click", (e) => {
+      e.preventDefault();
+      const category2 = button.getAttribute("data-category2");
+      productStore.updateFilters({ category2 });
+    });
+  });
+
+  // 전체 카테고리 리셋 버튼 클릭 이벤트
+  document.querySelector("[data-breadcrumb='reset']")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    productStore.updateFilters({ category1: "", category2: "" });
+  });
+
+  // 브레드크럼 카테고리 클릭 이벤트
+  document.querySelector("[data-breadcrumb='category1']")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    const category1 = e.target.textContent;
+    productStore.updateFilters({ category1, category2: "" });
+  });
+
+  document.querySelector("[data-breadcrumb='category2']")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    const category2 = e.target.textContent;
+    productStore.updateFilters({ category2 });
+  });
+
   // 장바구니 버튼 클릭 이벤트
   document.querySelectorAll(".add-to-cart-btn").forEach((button) => {
     button.addEventListener("click", (e) => {
@@ -122,6 +162,7 @@ function setupEventListeners() {
         brand: productCard.querySelector("p").textContent,
         image: productCard.querySelector("img").src,
         lprice: parseInt(productCard.querySelector(".text-lg").textContent.replace(/[^0-9]/g, "")),
+        quantity: 1,
       };
       cartStore.addToCart(product);
     });

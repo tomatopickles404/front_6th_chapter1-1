@@ -3,6 +3,8 @@ import { cartStore } from "../stores/cartStore.js";
 import { Footer } from "../components/Footer.js";
 import { isTestEnvironment } from "../utils/isTestEnvironment.js";
 
+const MAX_STOCK = Number.MAX_SAFE_INTEGER;
+
 // 상품 상세 상태 관리
 const productDetailStore = {
   state: {
@@ -63,9 +65,8 @@ const productDetailStore = {
   },
 
   increaseQuantity() {
-    console.log("increaseQuantity called, current quantity:", this.state.quantity);
-    const maxStock = this.state.product?.stock || 107;
-    this.state.quantity = Math.min(this.state.quantity + 1, maxStock);
+    const maxStock = this.state.product?.stock;
+    this.state.quantity = Math.min(this.state.quantity + 1, maxStock || MAX_STOCK);
 
     const quantityInput = document.querySelector("#quantity-input");
     if (quantityInput) {
@@ -74,7 +75,6 @@ const productDetailStore = {
   },
 
   decreaseQuantity() {
-    console.log("decreaseQuantity called, current quantity:", this.state.quantity);
     this.state.quantity = Math.max(this.state.quantity - 1, 1);
 
     const quantityInput = document.querySelector("#quantity-input");
@@ -87,8 +87,6 @@ const productDetailStore = {
     // 빈 문자열이나 유효하지 않은 값 처리
     if (!newQuantity || newQuantity === "" || isNaN(newQuantity)) {
       this.state.quantity = 1;
-      console.log("Invalid input, reset to:", this.state.quantity);
-      // input 값만 업데이트 (렌더링하지 않음)
       const quantityInput = document.querySelector("#quantity-input");
       if (quantityInput) {
         quantityInput.value = this.state.quantity;
@@ -98,15 +96,13 @@ const productDetailStore = {
 
     // 입력값을 숫자로 변환하고 범위 제한
     const quantity = parseInt(newQuantity);
-    const maxStock = this.state.product?.stock || 107;
-    const newQuantityValue = Math.max(1, Math.min(quantity, maxStock));
+    const maxStock = this.state.product?.stock;
+    const newQuantityValue = Math.max(1, Math.min(quantity, maxStock || MAX_STOCK));
 
     // 값이 실제로 변경된 경우에만 업데이트
     if (this.state.quantity !== newQuantityValue) {
       this.state.quantity = newQuantityValue;
-      console.log("Updated quantity to:", this.state.quantity);
 
-      // input 값도 업데이트 (렌더링하지 않음)
       const quantityInput = document.querySelector("#quantity-input");
       if (quantityInput) {
         quantityInput.value = this.state.quantity;
@@ -250,15 +246,11 @@ export function ProductDetailPage() {
             <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
             </svg>
-            <button class="breadcrumb-link" data-category1="${product.category1 || "카테고리"}">
-              ${product.category1 || "카테고리"}
-            </button>
+            <button class="breadcrumb-link" data-category1="${product?.category1}">${product?.category1}</button>
             <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
             </svg>
-            <button class="breadcrumb-link" data-category2="${product.category2 || "서브카테고리"}">
-              ${product.category2 || "서브카테고리"}
-            </button>
+            <button class="breadcrumb-link" data-category2="${product?.category2}">${product?.category2}</button>
           </div>
         </nav>
 
@@ -291,18 +283,18 @@ export function ProductDetailPage() {
                   }).join("")}
                 </div>
                 <span class="ml-2 text-sm text-gray-600"
-                  >${product.rating || 4.0} (${product.reviewCount || 749}개 리뷰)</span
+                  >${product?.rating} (${product?.reviewCount?.toLocaleString()}개 리뷰)</span
                 >
               </div>
               <!-- 가격 -->
               <div class="mb-4">
-                <span class="text-2xl font-bold text-blue-600">${product.lprice?.toLocaleString()}원</span>
+                <span class="text-2xl font-bold text-blue-600">${Number(product.lprice)?.toLocaleString()}원</span>
               </div>
               <!-- 재고 -->
-              <div class="text-sm text-gray-600 mb-4">재고 ${product.stock || 107}개</div>
+              <div class="text-sm text-gray-600 mb-4">재고 ${product?.stock?.toLocaleString()}개</div>
               <!-- 설명 -->
               <div class="text-sm text-gray-700 leading-relaxed mb-6">
-                ${product.description || product.title}에 대한 상세 설명입니다. 브랜드의 우수한 품질을 자랑하는
+                ${product?.description || product?.title}에 대한 상세 설명입니다. 브랜드의 우수한 품질을 자랑하는
                 상품으로, 고객 만족도가 높은 제품입니다.
               </div>
             </div>
@@ -325,7 +317,7 @@ export function ProductDetailPage() {
                   id="quantity-input"
                   value="${quantity}"
                   min="1"
-                  max="${product.stock || 107}"
+                  max="${product?.stock}"
                   class="w-16 h-8 text-center text-sm border-t border-b border-gray-300 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 />
                 <button
@@ -358,8 +350,8 @@ export function ProductDetailPage() {
           </button>
         </div>
 
-        <!-- 관련 상품 섹션: 상품이 로드된 후에만 표시 -->
-        ${product
+        <!-- 관련 상품 섹션: 관련 상품이 로드된 후에만 표시 -->
+        ${!relatedProductsLoading && relatedProducts.length > 0
           ? `
         <div class="bg-white rounded-lg shadow-sm">
           <div class="p-4 border-b border-gray-200">
@@ -367,58 +359,32 @@ export function ProductDetailPage() {
             <p class="text-sm text-gray-600">같은 카테고리의 다른 상품들</p>
           </div>
           <div class="p-4">
-            ${
-              relatedProductsLoading
-                ? `
-              <!-- 로딩 상태 -->
-              <div class="text-center py-8">
-                <div class="inline-flex items-center">
-                  <svg class="animate-spin h-5 w-5 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path
-                      class="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  <span class="text-sm text-gray-600">관련 상품을 불러오는 중...</span>
-                </div>
-              </div>
-            `
-                : relatedProducts.length > 0
-                  ? `
-              <!-- 관련 상품 목록 -->
-              <div class="grid grid-cols-2 gap-3 responsive-grid">
-                ${relatedProducts
-                  .map(
-                    (relatedProduct) => /* HTML */ `
-                      <div
-                        class="bg-gray-50 rounded-lg p-3 related-product-card cursor-pointer"
-                        data-product-id="${relatedProduct.productId}"
-                      >
-                        <div class="aspect-square bg-white rounded-md overflow-hidden mb-2">
-                          <img
-                            src="${relatedProduct.image}"
-                            alt="${relatedProduct.title}"
-                            class="w-full h-full object-cover"
-                            loading="lazy"
-                          />
-                        </div>
-                        <h3 class="text-sm font-medium text-gray-900 mb-1 line-clamp-2">${relatedProduct.title}</h3>
-                        <p class="text-sm font-bold text-blue-600">${relatedProduct.lprice?.toLocaleString()}원</p>
+            <!-- 관련 상품 목록 -->
+            <div class="grid grid-cols-2 gap-3 responsive-grid">
+              ${relatedProducts
+                .map(
+                  (relatedProduct) => /* HTML */ `
+                    <div
+                      class="bg-gray-50 rounded-lg p-3 related-product-card cursor-pointer"
+                      data-product-id="${relatedProduct.productId}"
+                    >
+                      <div class="aspect-square bg-white rounded-md overflow-hidden mb-2">
+                        <img
+                          src="${relatedProduct.image}"
+                          alt="${relatedProduct.title}"
+                          class="w-full h-full object-cover"
+                          loading="lazy"
+                        />
                       </div>
-                    `,
-                  )
-                  .join("")}
-              </div>
-            `
-                  : `
-              <!-- 관련 상품 없음 -->
-              <div class="text-center py-8">
-                <p class="text-sm text-gray-500">관련 상품이 없습니다.</p>
-              </div>
-            `
-            }
+                      <h3 class="text-sm font-medium text-gray-900 mb-1 line-clamp-2">${relatedProduct.title}</h3>
+                      <p class="text-sm font-bold text-blue-600">
+                        ${Number(relatedProduct.lprice)?.toLocaleString()}원
+                      </p>
+                    </div>
+                  `,
+                )
+                .join("")}
+            </div>
           </div>
         </div>
         `

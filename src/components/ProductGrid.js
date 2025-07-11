@@ -55,7 +55,7 @@ export function ProductGrid({ isLoading, products, totalCount, limit, error }) {
 
   return /* HTML */ `
     <div class="mb-4 text-sm text-gray-600">
-      총 <span class="font-medium text-gray-900">${totalCount}개</span>의 상품
+      총 <span class="font-medium text-gray-900">${totalCount.toLocaleString()}개</span>의 상품
     </div>
     <div class="grid grid-cols-2 gap-4 mb-6" id="products-grid">
       ${products
@@ -82,7 +82,7 @@ export function ProductGrid({ isLoading, products, totalCount, limit, error }) {
                 <div class="cursor-pointer product-info mb-3" data-product-id="${productId}">
                   <h3 class="text-sm font-medium text-gray-900 line-clamp-2 mb-1">${title}</h3>
                   <p class="text-xs text-gray-500 mb-2">${brand}</p>
-                  <p class="text-lg font-bold text-gray-900">${lprice?.toLocaleString()}원</p>
+                  <p class="text-lg font-bold text-gray-900">${Number(lprice)?.toLocaleString()}원</p>
                 </div>
                 <!-- 장바구니 버튼 -->
                 <button

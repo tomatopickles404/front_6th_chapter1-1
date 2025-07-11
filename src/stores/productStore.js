@@ -15,7 +15,6 @@ export const productStore = {
       category1: "",
       category2: "",
       sort: "price_asc",
-      ...getQueryParams(),
     },
   },
 
@@ -66,6 +65,19 @@ export const productStore = {
       sort: "price_asc",
       ...getQueryParams(),
     };
+  },
+
+  initializeFromURL() {
+    const urlParams = getQueryParams();
+    this.state.filters = {
+      ...this.state.filters,
+      ...urlParams,
+      page: 1,
+    };
+    // 숫자 파라미터들을 올바른 타입으로 변환
+    if (urlParams.limit) {
+      this.state.filters.limit = Number(urlParams.limit);
+    }
   },
 
   // 렌더링 콜백 (외부에서 주입)
